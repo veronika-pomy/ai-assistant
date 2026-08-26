@@ -1,0 +1,14 @@
+.env
+.env.local
+.env.*.local
+
+__pycache__/
+
+venv/
+.venv
+virtualenv/
+
+.DS_Store
+Thumbs.db
+
+.vscode/
