@@ -84,3 +84,48 @@ mark_complete_json = {
 
 tools = [{"type": "function", "function": create_checklist_json},
         {"type": "function", "function": mark_complete_json}]
+
+def handle_tool_calls(tool_calls):
+    results = []
+    for tool_call in tool_calls:
+        tool_name = tool_call.function.name
+        args = json.loads(tool_call.function.arguments)
+        tool = globals().get(tool_name)
+        result = tool(**args) if tool else {}
+        results.append({"role": "tool", "content": json.dumps(result), "tool_call_id": tool_call.id})
+    return results
+
+def loop(messages):
+    response = openai.chat.completions.create(model="gpt-5.5", messages=messages, tools=tools)
+    while response.choices[0].finish_reason == "tool_calls":
+        message = response.choices[0].message
+        tool_calls = message.tool_calls
+        results = handle_tool_calls(tool_calls)
+        messages.append(message)
+        messages.extend(results)
+        response = openai.chat.completions.create(model="gpt-5.5", messages=messages, tools=tools)
+    show(response.choices[0].message.content)
+
+# System message for the agent
+system_message = """
+You are a helpful assistant with a knack for solving creative and logical problems.
+You are given a problem to solve, by using your checklist tools to plan a list of steps, then carrying out each step in turn.
+Now create a plan, set the checklist, carry out the steps, and reply with the solution.
+If any quantity isn't provided in the question, then include a step to come up with a reasonable estimate.
+Provide your solution in Rich console markup without code blocks.
+Do not ask the user questions or clarification; respond only with the answer after using your tools.
+"""
+
+# User message for the agent
+user_message = """
+I want to make mashed potatoes for dinner.
+I want to use a splash of milk with some pepper and salt, 
+but avoid things like butter or oil. 
+Please make a simple recipe for me to follow, and provide instructions on time and temperature for cooking.
+Assume I'm using three medium-sized potatoes.
+"""
+
+messages = [{"role": "system", "content": system_message},
+            {"role": "user", "content": user_message}]
+
+loop(messages)
