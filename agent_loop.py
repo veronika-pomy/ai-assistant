@@ -12,6 +12,9 @@ def show(text):
 
 openai = OpenAI()
 
+# Model configuration
+MODEL = "gpt-5.5"
+
 # Set up lists for agent to use
 checklist = []
 completed = []
@@ -96,14 +99,14 @@ def handle_tool_calls(tool_calls):
     return results
 
 def loop(messages):
-    response = openai.chat.completions.create(model="gpt-5.5", messages=messages, tools=tools)
+    response = openai.chat.completions.create(model=MODEL, messages=messages, tools=tools)
     while response.choices[0].finish_reason == "tool_calls":
         message = response.choices[0].message
         tool_calls = message.tool_calls
         results = handle_tool_calls(tool_calls)
         messages.append(message)
         messages.extend(results)
-        response = openai.chat.completions.create(model="gpt-5.5", messages=messages, tools=tools)
+        response = openai.chat.completions.create(model=MODEL, messages=messages, tools=tools)
     show(response.choices[0].message.content)
 
 # System message for the agent
@@ -116,16 +119,72 @@ Provide your solution in Rich console markup without code blocks.
 Do not ask the user questions or clarification; respond only with the answer after using your tools.
 """
 
-# User message for the agent
-user_message = """
-I want to make mashed potatoes for dinner.
-I want to use a splash of milk with some pepper and salt, 
-but avoid things like butter or oil. 
-Please make a simple recipe for me to follow, and provide instructions on time and temperature for cooking.
-Assume I'm using three medium-sized potatoes.
-"""
+# Get user input
+def get_user_task():
+    """Get task input from user"""
+    console = Console()
 
-messages = [{"role": "system", "content": system_message},
-            {"role": "user", "content": user_message}]
+    # Agent welcome message
+    top_section = r"""[plum2]
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⣴⣦⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    ▄▄▄   ▄▄▄          ▄▄▄▄▄ ▄           ▄▄▄    ▄▄▄       ▄▄ ▄▄
+⠀⠀⠀⣠⣖⠶⣤⣴⠚⠛⠍⡠⢌⠉⠙⠳⣦⡤⠖⣲⣄⠀⠀⠀    ███   ███ ▀▀        ███  ▀           ████▄  ███       ██ ██
+⠀⢀⣤⡿⢉⣹⣌⠈⠀⢀⠌⠀⠀⠡⡀⠀⠁⣠⣟⡉⢿⣤⡀⠀    █████████ ██        ███   ███▄███▄   ███▀██▄███ ▄█▀█▄ ██ ██ ▄█▀█▄
+⠀⠸⣇⡀⠘⢩⠊⢀⡀⢸⠀⠀⠀⠀⡧⢀⡀⠑⢜⠃⢀⣨⠇⠀    ███▀▀▀███ ██        ███   ██ ██ ██   ███  ▀████ ██▄█▀ ██ ██ ██▄█▀
+⠀⠀⢠⠏⠑⠁⠀⣿⡟⡘⠀⠀⠀⠀⢣⢻⣿⠀⠈⠪⡹⡇⠀⠀    ███   ███ ██▄ ▄▄   ▄███▄  ██ ██ ██   ███    ███ ▀█▄▄▄ ██ ██ ▀█▄▄▄ ██
+⠀⢠⡿⠁⠀⠀⠀⢀⠜⠀⠀⠀⠀⠀⠀⠡⡀⠀⠀⠀⠈⢹⡄⠀                 ▄█▀
+⠀⣾⣇⠀⠀⣀⠔⠁⠀⠀⢠⣌⣩⡆⠀⠀⠈⠢⣀⠀⠀⢸⢷⠀
+⢠⡇⢳⡉⠁⠀⠀⠀⠀⠀⣀⣹⣏⣀⠀⠀⠀⠀⠀⠈⢁⡾⢸⡆
+⢸⢡⠀⠑⢤⡀⠀⠀⠀⠀⠀⠉⠉⠀⠀⠀⠀⠀⢀⡠⠚⠀⡌⡇
+⢸⡄⢣⠀⠀⠈⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠁⠀⠀⡘⢀⡇
+⠈⣯⢦⣷⣶⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣶⢾⣔⣽⠁
+⠀⠈⠿⣮⠀⢓⠢⣂⡀⢩⡀⠐⠂⢈⡼⢀⣀⡴⡺⠁⣰⡿⠁⠀
+⠀⠀⠀⠈⠓⠛⠉⠹⠿⠿⠛⠛⠛⠛⠿⠷⠏⠉⠛⠚⠁⠀⠀⠀[/plum2]
+    """
 
-loop(messages)
+    bottom_section = r"""[plum2]
+▄▄▄   ▄▄▄                       ▄▄ ▄▄         ▄▄   ▄▄                                                             ▄▄
+███   ███                      ██  ██        ██   ██                            ▀▀         ██               ██    ██
+▀███▄███▀ ▄███▄ ██ ██ ████▄   ▀██▀ ██ ██ ██ ▀██▀ ▀██▀ ██ ██    ▀▀█▄ ▄█▀▀▀ ▄█▀▀▀ ██  ▄█▀▀▀ ▀██▀▀ ▀▀█▄ ████▄ ▀██▀▀  ██
+  ▀███▀   ██ ██ ██ ██ ██ ▀▀    ██  ██ ██ ██  ██   ██  ██▄██   ▄█▀██ ▀███▄ ▀███▄ ██  ▀███▄  ██  ▄█▀██ ██ ██  ██    ▀▀
+   ███    ▀███▀ ▀██▀█ ██       ██  ██ ▀██▀█  ██   ██   ▀██▀   ▀█▄██ ▄▄▄█▀ ▄▄▄█▀ ██▄ ▄▄▄█▀  ██  ▀█▄██ ██ ██  ██    ██
+                                                        ██
+                                                      ▀▀▀[/plum2]
+    """
+
+    console.print("\n")
+    console.print(top_section)
+    console.print(bottom_section)
+    console.print("[plum2][dim]Let's tackle whatever you need today, step by step.[/dim][/plum2]\n")
+
+    console.print("[bold yellow]→ What can I help you with?[/bold yellow]")
+    user_input = input("\n  >> ")
+    return user_input
+
+def main():
+    while True:
+        user_input = get_user_task()
+
+        # Check if input is empty or only whitespace
+        if not user_input.strip():
+            show("[yellow]Looks like that was empty - try again![/yellow]")
+            continue
+
+        # Build messages with user's input
+        messages = [
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": user_input}
+        ]
+
+        # Run the agent loop
+        loop(messages)
+
+        # Ask if user wants to continue
+        continue_prompt = input("\n\nWant to work on something else? (yes/no): ")
+        if continue_prompt.lower() not in ['yes', 'y']:
+            show("[green]Thanks! Have a great day![/green]")
+            break
+
+# Run main() when script is executed directly, not when imported as a module
+if __name__ == "__main__":
+    main()
+    
