@@ -1,6 +1,8 @@
-# Nelle - Agent Loop Demo
+# Nelle - Agent Loop
 
-A demonstration of an autonomous agent loop using OpenAI's function calling API. Nelle is a task assistant that breaks down problems into checklists, executes each step, and reports progress with styled terminal output.
+A demo of an autonomous agent loop using OpenAI's function calling API. Nelle is a task assistant that breaks down problems into checklists, executes each step, and reports progress with styled terminal output.
+
+![Nelle Demo](demo.png)
 
 ## Features
 
