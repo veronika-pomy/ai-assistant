@@ -19,11 +19,44 @@ A demo of an autonomous agent loop using OpenAI's function calling API. Nelle is
 - **Rich** (`rich`) - Terminal formatting and styled output
 - **python-dotenv** (`python-dotenv`) - Environment variable management
 
-**Key Concepts:**
-- OpenAI Function Calling API
-- Agent loops with tool execution
-- JSON schema for tool definitions
-- Dynamic function dispatch with `globals()`
+## Setup
+
+1. **Activate the virtual environment:**
+   ```sh
+   source .venv/bin/activate
+   ```
+
+2. **Install dependencies:**
+   ```sh
+   pip install -r requirements.txt
+   ```
+
+3. **Configure environment:**
+   Create a `.env` file in the project root:
+   ```
+   OPENAI_API_KEY=your_api_key_here
+   ```
+
+4. **Run the application:**
+   ```sh
+   python agent_loop.py
+   ```
+
+5. **To deactivate the virtual environment when done:**
+   ```sh
+   deactivate
+   ```
+
+## How to Use
+
+1. Launch the application
+2. Enter a task or problem when prompted
+3. Watch Nelle break it down into steps and work through them
+4. Choose whether to work on another task or exit
+
+**Example prompts:**
+- "Plan a dinner party for 8 people with a $200 budget"
+- "Create a shopping list for making pasta carbonara"
 
 ## Model Configuration
 
@@ -92,35 +125,6 @@ openai = OpenAI(
 1. Update the `MODEL` constant to use a model name supported by that provider
 2. Verify that the provider supports function calling (most modern ones do)
 3. Check provider-specific documentation if additional help
-
-## Setup
-
-1. **Install dependencies:**
-   ```bash
-   pip install openai python-dotenv rich
-   ```
-
-2. **Configure environment:**
-   Create a `.env` file in the project root:
-   ```
-   OPENAI_API_KEY=your_api_key_here
-   ```
-
-3. **Run the application:**
-   ```bash
-   python agent_loop.py
-   ```
-
-## How to Use
-
-1. Launch the application
-2. Enter a task or problem when prompted
-3. Watch Nelle break it down into steps and work through them
-4. Choose whether to work on another task or exit
-
-**Example prompts:**
-- "Plan a dinner party for 8 people with a $200 budget"
-- "Create a shopping list for making pasta carbonara"
 
 ## Architecture
 
