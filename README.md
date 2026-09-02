@@ -1,23 +1,25 @@
-# Nelle - Agent Loop
+# Nelle - Agent Assistant
 
-A demo of an autonomous agent loop using OpenAI's function calling API. Nelle is a task assistant that breaks down problems into checklists, executes each step, and reports progress with styled terminal output.
+An autonomous agent built with the OpenAI Agents SDK. Nelle breaks down problems into checklists, executes each step, and reports progress with live-streamed styled terminal output.
 
-![Nelle Demo](demo.png)
+![Nelle Helpful Assistant](demo.png)
 
 ## Features
 
-- **Interactive Terminal UI**: Styled ASCII art and Rich console formatting
-- **Autonomous Task Planning**: Agent creates and manages checklists autonomously
-- **Tool-based Architecture**: Agent uses function calling to create checklists and mark items complete
-- **Step-by-Step Execution**: Visual progress tracking with strikethrough formatting for completed items
+- **Interactive Terminal UI**: Styled ASCII art and Rich live-rendered console output
+- **Autonomous Task Planning**: Agent creates and manages checklists using function tools
+- **Conversational Memory**: In-memory session persistence maintains context across multiple tasks
+- **Live Streaming Output**: Real-time Rich markup rendering as the agent responds
+- **Step-by-Step Execution**: Visual progress tracking with strikethrough for completed items
 
 ## Tech Stack
 
 **Core Dependencies:**
 - **Python 3.10+**
-- **OpenAI API** (`openai`) - GPT model access and function calling
-- **Rich** (`rich`) - Terminal formatting and styled output
-- **python-dotenv** (`python-dotenv`) - Environment variable management
+- **OpenAI Agents SDK** (`openai-agents==0.22.0`) - Agentic framework with built-in tool-calling loop, session management, and streaming
+- **OpenAI API** (`openai>=1.0.0`) - Model access
+- **Rich** (`rich>=13.0.0`) - Terminal formatting with live rendering
+- **python-dotenv** (`python-dotenv>=1.0.0`) - Environment variable management
 
 ## Setup
 
@@ -35,6 +37,7 @@ A demo of an autonomous agent loop using OpenAI's function calling API. Nelle is
    Create a `.env` file in the project root:
    ```
    OPENAI_API_KEY=your_api_key_here
+   MODEL_NAME=model-name
    ```
 
 4. **Run the application:**
@@ -51,181 +54,100 @@ A demo of an autonomous agent loop using OpenAI's function calling API. Nelle is
 
 1. Launch the application
 2. Enter a task or problem when prompted
-3. Watch Nelle break it down into steps and work through them
-4. Choose whether to work on another task or exit
+3. Watch Nelle break it down into steps and work through them in real-time
+4. Enter another task, or type `exit` or `quit` to close
 
 **Example prompts:**
 - "Plan a dinner party for 8 people with a $200 budget"
-- "Create a shopping list for making pasta carbonara"
+- "Tell me a joke about software developers"
 
 ## Model Configuration
 
-**Current Model:** `gpt-5.5`
+The model is set via the `MODEL_NAME` environment variable in `.env`. Change it to any model supported by your OpenAI API provider.
 
-The model is defined as a constant near the top of `agent_loop.py` (line 16). You can swap to any OpenAI model.
-
-### Using OpenAI-Compatible APIs
-
-The OpenAI SDK can work with many providers that offer **OpenAI-compatible endpoints** by setting a custom `base_url`. Simply update the client initialization in `agent_loop.py`:
-
-**Major Providers:**
-
-```python
-# Anthropic (Claude)
-openai = OpenAI(
-    api_key="your_anthropic_key",
-    base_url="https://api.anthropic.com/v1"
-)
-
-# DeepSeek
-openai = OpenAI(
-    api_key="your_deepseek_key",
-    base_url="https://api.deepseek.com/v1"
-)
-
-# Google Gemini
-openai = OpenAI(
-    api_key="your_google_key",
-    base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
-)
-
-# Groq (Fast inference)
-openai = OpenAI(
-    api_key="your_groq_key",
-    base_url="https://api.groq.com/openai/v1"
-)
-
-# xAI (Grok)
-openai = OpenAI(
-    api_key="your_grok_key",
-    base_url="https://api.x.ai/v1"
-)
-
-# OpenRouter (Multi-model aggregator)
-openai = OpenAI(
-    api_key="your_openrouter_key",
-    base_url="https://openrouter.ai/api/v1"
-)
-
-# Azure OpenAI
-openai = OpenAI(
-    api_key="your_azure_key",
-    base_url="https://your-resource.openai.azure.com/",
-    default_headers={"api-version": "2024-02-01"}
-)
-
-# Local Models (Ollama, LM Studio)
-openai = OpenAI(
-    api_key="ollama",  # Can be any string for local
-    base_url="http://localhost:11434/v1"
-)
+**Example:**
 ```
-
-**Note:** When using these providers, make sure to:
-1. Update the `MODEL` constant to use a model name supported by that provider
-2. Verify that the provider supports function calling (most modern ones do)
-3. Check provider-specific documentation if additional help
+MODEL_NAME=model-name
+```
 
 ## Architecture
 
-### The Agent Loop Pattern
+### SDK-Powered Agent Pattern
 
-This project demonstrates a **tool-calling agent loop**, a common pattern for building autonomous AI agents that can take actions and respond to results iteratively.
+This project uses the **OpenAI Agents SDK**, which abstracts away the manual tool-calling loop and message management into a high-level framework.
 
-#### Core Loop Flow
+#### Core Flow
 
 ```
-User Input → Agent Planning → Tool Calls → Tool Execution → Results → Agent Response
-                ↑                                                            ↓
-                └────────────────── Loop continues ─────────────────────────┘
+User Input → Agent (SDK) → Tool Calls → Tool Execution → Streaming Response
+                ↑                                              ↓
+                └──────────── Session persists ───────────────┘
 ```
 
 #### Key Components
 
-**1. Message History (`messages` array)**
-- Maintains conversation context between user, assistant, and tool results
-- Each message has a `role` field: `user`, `assistant`, or `tool`
-- Grows with each iteration, providing full context to the model
+**1. Session Management (`SQLiteSession`)**
+- In-memory SQLite session maintains conversation history automatically
+- Conversation context persists across multiple tasks within one run
 
-**2. Tool Definitions**
-- JSON schemas describe available functions (`create_checklist`, `mark_complete`)
-- Sent to the OpenAI API so the model knows what actions it can take
-- Include parameter types, descriptions, and requirements
+**2. Function Tools (`@function_tool` decorator)**
+- Python functions decorated with `@function_tool` become agent tools
+- SDK auto-generates schemas from function signatures and docstrings
+- No manual JSON schema definitions needed
 
-**3. Tool Execution Handler**
-- Receives tool calls from the API response
-- Dynamically dispatches to Python functions using `globals().get()`
-- Returns results formatted as tool messages with matching `tool_call_id`
+**3. Agent & Runner**
+- `Agent` defines the agent's name, instructions, tools, and model
+- `Runner.run_streamed` handles the entire tool-calling loop internally
+- Streams response events as the agent works
 
-**4. Loop Control**
-- Continues while `finish_reason == "tool_calls"`
-- Exits when agent decides it's done (no more tools needed)
-- Final response shown to user
+**4. Live Streaming Output**
+- `Rich.live.Live` re-renders accumulated output on each delta
+- Markup tags parse against the full buffer for proper formatting
+- User sees the response build in real-time
 
 #### Design Principles
 
-**Autonomy**: The agent decides when and how to use tools without hard-coded logic. It can adapt its approach based on the task.
+**SDK Abstraction**: The OpenAI Agents SDK eliminates boilerplate — no manual loop control, message formatting, or tool dispatch logic.
 
-**Extensibility**: Adding new tools only requires:
-- Defining the function
-- Adding its JSON schema to the `tools` array
-- No changes to the loop logic
+**Declarative Tools**: Decorate a function with `@function_tool` and it becomes available to the agent. The SDK handles schema generation and invocation.
 
-**Transparency**: Each tool call is visible in the console, showing the agent's "thought process" as it works through the checklist.
+**Conversational Continuity**: `SQLiteSession` tracks history automatically. The agent remembers prior tasks within the session without manual state management.
 
-**Stateful Execution**: The `checklist` and `completed` arrays maintain state across tool calls, allowing the agent to track progress over multiple steps.
-
-#### The Two Loops
-
-**Outer Loop (Agent Iterations)**
-```python
-while response.finish_reason == "tool_calls":
-    # Agent wants to call tools
-    # Execute them and continue
-```
-
-**Inner Loop (Batch Tool Calls)**
-```python
-for tool_call in tool_calls:
-    # Execute each tool call
-    # Collect all results
-```
-
-The agent can request multiple tools in a single response (e.g., "create checklist AND mark first item complete"), which the inner loop handles in parallel before continuing the outer conversation loop.
+**Streaming UX**: Live-rendered output provides real-time feedback as the agent processes each step.
 
 ## Project Structure
 
 ```
 agent_loop.py
-├── Imports & Setup
+├── Imports & Setup (OpenAI Agents SDK, Rich, dotenv)
 ├── Helper Functions (show)
 ├── Checklist State (checklist, completed arrays)
-├── Checklist Functions (create_checklist, mark_complete, get_checklist_report)
-├── Tool JSON Schemas
-├── Tool Execution (handle_tool_calls)
-├── Agent Loop (loop function)
-├── User Interface (get_user_task, main)
-└── Entry Point (__name__ == "__main__")
+├── Checklist Helper (_checklist_report)
+├── Function Tools (@function_tool decorated: create_checklist, mark_complete)
+├── Welcome Banner (show_welcome)
+├── User Prompt (prompt_user)
+├── Main Loop (async main with SQLiteSession and Runner.run_streamed)
+└── Entry Point (asyncio.run(main()))
 ```
 
 ## Learning Notes
 
-This demo illustrates several important patterns:
+This demo illustrates SDK-first agentic patterns:
 
-- **Function calling vs. prompting**: Instead of asking the agent to output JSON we parse, we use structured function calls with guaranteed schema adherence
-- **State management**: Global state (`checklist`, `completed`) persists across tool calls within a single task
-- **Dynamic dispatch**: `globals().get(tool_name)` allows runtime function lookup without switch statements
-- **Message role separation**: OpenAI uses `role` to understand context—`user` inputs, `assistant` responses, `tool` results
-- **Progressive enhancement**: The Rich library gracefully falls back to plain text if rendering fails
+- **SDK abstraction**: The Agents SDK handles tool-calling loop control, message formatting, and session management
+- **Declarative tools**: `@function_tool` decorator converts Python functions to agent tools with auto-generated schemas from type hints and docstrings
+- **Session persistence**: `SQLiteSession` maintains conversation history transparently across tasks within one run
+- **Streaming UX**: `Runner.run_streamed` + `Rich.live.Live` provide real-time markup rendering as the agent responds
+- **State management**: Global state (`checklist`, `completed`) persists across tool calls, managed by application logic outside the SDK
 
 ## Future Enhancements
 
-- Add persistent storage (save/load checklists)
+- Persistent storage across sessions (swap `:memory:` for file-based SQLite)
 - Support for sub-tasks and nested checklists
 - Multi-agent collaboration (delegate subtasks to specialized agents)
-- Streaming responses for real-time progress updates
+- Token/message trimming for long conversations
 - Tool result validation and error recovery
 
 ---
 
-Built as a demonstration of modern AI agent patterns and autonomous task execution.
+Built as a demonstration of SDK-powered agentic workflows with live streaming output.
