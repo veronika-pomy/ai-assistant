@@ -10,10 +10,12 @@ from agents import Agent, Runner, RunContextWrapper, SQLiteSession, trace, funct
 load_dotenv(override=True)
 MODEL_NAME = os.getenv("MODEL_NAME")
 
+console = Console()
+
 # General util
 def show(text):
     try:
-        Console().print(text)
+        console.print(text)
     except Exception:
         print(text)
 
@@ -68,8 +70,6 @@ tools = [ create_checklist, mark_complete ]
 
 # Welcome banner
 def show_welcome():
-    console = Console()
-
     top_section = r"""[plum2]
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⣴⣦⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    ▄▄▄   ▄▄▄          ▄▄▄▄▄ ▄           ▄▄▄    ▄▄▄       ▄▄ ▄▄
 ⠀⠀⠀⣠⣖⠶⣤⣴⠚⠛⠍⡠⢌⠉⠙⠳⣦⡤⠖⣲⣄⠀⠀⠀    ███   ███ ▀▀        ███  ▀           ████▄  ███       ██ ██
@@ -86,27 +86,15 @@ def show_welcome():
 ⠀⠀⠀⠈⠓⠛⠉⠹⠿⠿⠛⠛⠛⠛⠿⠷⠏⠉⠛⠚⠁⠀⠀⠀[/plum2]
     """
 
-    bottom_section = r"""[plum2]
-▄▄▄   ▄▄▄                       ▄▄ ▄▄         ▄▄   ▄▄                                                             ▄▄
-███   ███                      ██  ██        ██   ██                            ▀▀         ██               ██    ██
-▀███▄███▀ ▄███▄ ██ ██ ████▄   ▀██▀ ██ ██ ██ ▀██▀ ▀██▀ ██ ██    ▀▀█▄ ▄█▀▀▀ ▄█▀▀▀ ██  ▄█▀▀▀ ▀██▀▀ ▀▀█▄ ████▄ ▀██▀▀  ██
-  ▀███▀   ██ ██ ██ ██ ██ ▀▀    ██  ██ ██ ██  ██   ██  ██▄██   ▄█▀██ ▀███▄ ▀███▄ ██  ▀███▄  ██  ▄█▀██ ██ ██  ██    ▀▀
-   ███    ▀███▀ ▀██▀█ ██       ██  ██ ▀██▀█  ██   ██   ▀██▀   ▀█▄██ ▄▄▄█▀ ▄▄▄█▀ ██▄ ▄▄▄█▀  ██  ▀█▄██ ██ ██  ██    ██
-                                                        ██
-                                                      ▀▀▀[/plum2]
-    """
-
     console.print("\n")
     console.print(top_section)
-    console.print(bottom_section)
-    console.print("[plum2][dim]Let's tackle whatever you need today, step by step.[/dim][/plum2]\n")
     console.print('[bold bright_blue]Tip: type "exit" or "quit" any time to close the agent.[/bold bright_blue]\n')
 
 # Prompt for user task
 def prompt_user(first=False):
     if first:
-        Console().print("[bold yellow]→ What can I help you with?[/bold yellow]")
-    return input("\n  >> ")
+        console.print("[bold yellow]→ What can I help you with today?[/bold yellow]")
+    return console.input("\n[bold cyan]You[/bold cyan] >> ")
 
 async def main():
     show_welcome()
@@ -135,6 +123,7 @@ async def main():
         Now create a plan, set the checklist, carry out the steps, and reply with the solution.
         If anything isn't provided in the question, then include a step to come up with a reasonable estimate.
         Provide your solution in Rich console markup without code blocks.
+        Rich markup uses square-bracket tags, e.g. [bold]word[/bold] or [green]word[/green] — never angle-bracket/HTML tags like <bold> or <green>.
         Use bold and color only for emphasis on specific words or short phrases — do not style entire sentences or paragraphs. Body text should remain plain.
         Do not ask the user questions or clarification; respond only with the answer after using your tools.
         """
@@ -146,8 +135,9 @@ async def main():
         # Run the agent and stream response
         with trace("Nelle Assistant"):
             result = Runner.run_streamed(agent, task, context=checklist_state, session=session)
+            console.print("\n[bold magenta]Nelle[/bold magenta]")
             buffer = ''
-            with Live(Text.from_markup(''), refresh_per_second=20) as live:
+            with Live(Text.from_markup(''), refresh_per_second=20, console=console) as live:
                 async for event in result.stream_events():
                     if event.type == "raw_response_event" and isinstance(event.data, ResponseTextDeltaEvent):
                         buffer += event.data.delta
