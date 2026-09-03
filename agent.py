@@ -1,13 +1,12 @@
 import os
-import requests
-import json
 import asyncio
+from dataclasses import dataclass, field
 from rich.console import Console
 from rich.live import Live
 from rich.text import Text
 from dotenv import load_dotenv
 from openai.types.responses import ResponseTextDeltaEvent
-from agents import Agent, Runner, SQLiteSession, trace, function_tool
+from agents import Agent, Runner, RunContextWrapper, SQLiteSession, trace, function_tool
 load_dotenv(override=True)
 MODEL_NAME = os.getenv("MODEL_NAME")
 
@@ -18,35 +17,38 @@ def show(text):
     except Exception:
         print(text)
 
-# Helper code
-checklist = []
-completed = []
+# State
+@dataclass
+class ChecklistState:
+    items: list[str] = field(default_factory=list)
+    completed: list[bool] = field(default_factory=list)
 
-def _checklist_report() -> str:
-    result = ''
-    for index, item in enumerate(checklist):
-        if completed[index]:
-            result += f"Checklist #{index + 1}: [green][strike]{item}[/strike][/green]\n"
-        else:
-            result += f"Checklist #{index + 1}: {item}\n"
-    show(result)
-    return result
+    def report(self) -> str:
+        result = ''
+        for index, item in enumerate(self.items):
+            if self.completed[index]:
+                result += f"Checklist #{index + 1}: [green][strike]{item}[/strike][/green]\n"
+            else:
+                result += f"Checklist #{index + 1}: {item}\n"
+        show(result)
+        return result
 
 # Tools
 @function_tool
-def create_checklist(descriptions: list[str]) -> str:
+def create_checklist(wrapper: RunContextWrapper[ChecklistState], descriptions: list[str]) -> str:
     """
     Create a checklist and return the report
 
     Args:
         descriptions: list of tasks
     """
-    checklist.extend(descriptions)
-    completed.extend([False] * len(descriptions))
-    return _checklist_report()
+    state = wrapper.context
+    state.items.extend(descriptions)
+    state.completed.extend([False] * len(descriptions))
+    return state.report()
 
 @function_tool
-def mark_complete(index: int, completion_notes: str) -> str:
+def mark_complete(wrapper: RunContextWrapper[ChecklistState], index: int, completion_notes: str) -> str:
     """
     Mark completed checklist items and return the report
 
@@ -54,12 +56,13 @@ def mark_complete(index: int, completion_notes: str) -> str:
         index: of the task to make as complete
         completion notes: notes from the agent about status of the task
     """
-    if 1 <= index <= len(checklist):
-        completed[index - 1] = True
+    state = wrapper.context
+    if 1 <= index <= len(state.items):
+        state.completed[index - 1] = True
     else:
         return 'No checklist item found at that index.'
     show(completion_notes)
-    return _checklist_report()
+    return state.report()
 
 tools = [ create_checklist, mark_complete ]
 
@@ -123,6 +126,9 @@ async def main():
             show("[green]Thanks! Have a great day![/green]")
             break
 
+        # Fresh checklist state per task, isolated from other turns
+        checklist_state = ChecklistState()
+
         system_message = """
         You are a helpful assistant with a knack for solving creative and logical problems.
         You are given a problem to solve, by using your checklist tools to plan a list of steps, then carrying out each step in turn.
@@ -139,7 +145,7 @@ async def main():
 
         # Run the agent and stream response
         with trace("Nelle Assistant"):
-            result = Runner.run_streamed(agent, task, session=session)
+            result = Runner.run_streamed(agent, task, context=checklist_state, session=session)
             buffer = ''
             with Live(Text.from_markup(''), refresh_per_second=20) as live:
                 async for event in result.stream_events():

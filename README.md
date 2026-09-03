@@ -23,29 +23,34 @@ An autonomous agent built with the OpenAI Agents SDK. Nelle breaks down problems
 
 ## Setup
 
-1. **Activate the virtual environment:**
+1. **Create a virtual environment:**
+   ```sh
+   python3 -m venv .venv
+   ```
+
+2. **Activate the virtual environment:**
    ```sh
    source .venv/bin/activate
    ```
 
-2. **Install dependencies:**
+3. **Install dependencies:**
    ```sh
    pip install -r requirements.txt
    ```
 
-3. **Configure environment:**
+4. **Configure environment:**
    Create a `.env` file in the project root:
    ```
    OPENAI_API_KEY=your_api_key_here
    MODEL_NAME=model-name
    ```
 
-4. **Run the application:**
+5. **Run the application:**
    ```sh
    python agent_loop.py
    ```
 
-5. **To deactivate the virtual environment when done:**
+6. **To deactivate the virtual environment when done:**
    ```sh
    deactivate
    ```
@@ -130,15 +135,11 @@ agent_loop.py
 └── Entry Point (asyncio.run(main()))
 ```
 
-## Learning Notes
+## Observability
 
-This demo illustrates SDK-first agentic patterns:
+This agent demo includes ability to view agent traces:
 
-- **SDK abstraction**: The Agents SDK handles tool-calling loop control, message formatting, and session management
-- **Declarative tools**: `@function_tool` decorator converts Python functions to agent tools with auto-generated schemas from type hints and docstrings
-- **Session persistence**: `SQLiteSession` maintains conversation history transparently across tasks within one run
-- **Streaming UX**: `Runner.run_streamed` + `Rich.live.Live` provide real-time markup rendering as the agent responds
-- **State management**: Global state (`checklist`, `completed`) persists across tool calls, managed by application logic outside the SDK
+<https://platform.openai.com/traces>
 
 ## Future Enhancements
 
