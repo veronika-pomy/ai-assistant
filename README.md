@@ -47,7 +47,7 @@ An autonomous agent built with the OpenAI Agents SDK. Nelle breaks down problems
 
 5. **Run the application:**
    ```sh
-   python agent_loop.py
+   python agent.py
    ```
 
 6. **To deactivate the virtual environment when done:**
@@ -100,12 +100,18 @@ User Input → Agent (SDK) → Tool Calls → Tool Execution → Streaming Respo
 - SDK auto-generates schemas from function signatures and docstrings
 - No manual JSON schema definitions needed
 
-**3. Agent & Runner**
+**3. Per-Turn State (`RunContextWrapper[ChecklistState]`)**
+- Checklist progress (`items`, `completed`) lives in a `ChecklistState` dataclass
+- A fresh `ChecklistState()` is created each loop iteration and passed to `Runner.run_streamed(..., context=...)`
+- Tools declare `wrapper: RunContextWrapper[ChecklistState]` as their first argument, and the SDK injects the current turn's state automatically
+- This keeps checklist data scoped to a single task
+
+**4. Agent & Runner**
 - `Agent` defines the agent's name, instructions, tools, and model
 - `Runner.run_streamed` handles the entire tool-calling loop internally
 - Streams response events as the agent works
 
-**4. Live Streaming Output**
+**5. Live Streaming Output**
 - `Rich.live.Live` re-renders accumulated output on each delta
 - Markup tags parse against the full buffer for proper formatting
 - User sees the response build in real-time
@@ -118,20 +124,21 @@ User Input → Agent (SDK) → Tool Calls → Tool Execution → Streaming Respo
 
 **Conversational Continuity**: `SQLiteSession` tracks history automatically. The agent remembers prior tasks within the session without manual state management.
 
+**Scoped Task State**: Checklist state rides in a per-run `context` object (`RunContextWrapper[ChecklistState]`) rather than shared globals, so it can't bleed between unrelated tasks while conversational history still persists in the session.
+
 **Streaming UX**: Live-rendered output provides real-time feedback as the agent processes each step.
 
 ## Project Structure
 
 ```
-agent_loop.py
+agent.py
 ├── Imports & Setup (OpenAI Agents SDK, Rich, dotenv)
 ├── Helper Functions (show)
-├── Checklist State (checklist, completed arrays)
-├── Checklist Helper (_checklist_report)
-├── Function Tools (@function_tool decorated: create_checklist, mark_complete)
+├── Checklist State (ChecklistState dataclass: items, completed, report())
+├── Function Tools (@function_tool decorated: create_checklist, mark_complete — receive state via RunContextWrapper[ChecklistState])
 ├── Welcome Banner (show_welcome)
 ├── User Prompt (prompt_user)
-├── Main Loop (async main with SQLiteSession and Runner.run_streamed)
+├── Main Loop (async main: fresh ChecklistState per task, SQLiteSession, Runner.run_streamed)
 └── Entry Point (asyncio.run(main()))
 ```
 
