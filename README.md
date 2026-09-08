@@ -47,7 +47,7 @@ An autonomous agent built with the OpenAI Agents SDK. Nelle breaks down problems
 
 5. **Run the application:**
    ```sh
-   python agent.py
+   python app.py
    ```
 
 6. **To deactivate the virtual environment when done:**
@@ -131,7 +131,7 @@ User Input → Agent (SDK) → Tool Calls → Tool Execution → Streaming Respo
 ## Project Structure
 
 ```
-agent.py
+app.py
 ├── Imports & Setup (OpenAI Agents SDK, Rich, dotenv)
 ├── Helper Functions (show)
 ├── Checklist State (ChecklistState dataclass: items, completed, report())
