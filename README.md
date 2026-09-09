@@ -4,6 +4,10 @@ An autonomous agent built with the OpenAI Agents SDK. Nelle breaks down problems
 
 ![Nelle Helpful Assistant](demo.png)
 
+---
+
+**📘 For AI Agents/Assistants**: Please read [CLAUDE.md](CLAUDE.md) for critical virtual environment setup and Python command usage instructions.
+
 ## Features
 
 - **Interactive Terminal UI**: Styled ASCII art and Rich live-rendered console output
