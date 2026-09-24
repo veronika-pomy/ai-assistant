@@ -197,30 +197,57 @@ ai-assistant/
 ├── tools/
 │   ├── base.py                     # Tool base abstractions
 │   └── web_search.py               # Web search tool wrapper
-└── tests/
-    ├── test_config.py              # Config tests
-    ├── test_imports.py             # Module structure tests
-    ├── test_session.py             # Session management tests
-    └── test_task_manager.py        # Orchestration & routing tests (16 tests)
+├── tests/
+│   ├── unit/                       # Unit & integration tests (63 total)
+│   │   ├── test_config.py          # Config/settings tests (6)
+│   │   ├── test_imports.py         # Module structure tests (26)
+│   │   ├── test_session.py         # Session management tests (9)
+│   │   └── test_task_manager.py    # Orchestration & routing tests (16)
+│   └── e2e/
+│       └── test_orchestration.py   # End-to-end workflow validation
+├── pytest.ini                       # Pytest configuration
+└── requirements.txt                 # Dependencies (includes pytest)
 ```
 
 ## Testing
 
-Run the comprehensive test suite:
+Test suite organized into unit and end-to-end tests:
 
-```bash
-# Run all unit and integration tests (63 tests)
-pytest tests/ -v
-
-# Run end-to-end testing of safe workflows
-python test_phase8.py
+```
+tests/
+├── unit/                          # 63 unit & integration tests
+│   ├── test_config.py             (6 tests)
+│   ├── test_imports.py            (26 tests)
+│   ├── test_session.py            (9 tests)
+│   └── test_task_manager.py       (16 tests)
+└── e2e/
+    └── test_orchestration.py      (safe workflows validation)
 ```
 
-**Test Coverage:**
+**Running tests:**
+
+```bash
+# Run all unit tests (63 tests)
+pytest tests/unit -v
+
+# Run all tests (unit + e2e)
+pytest tests/ -v
+
+# Run end-to-end orchestration test (safe workflows)
+python tests/e2e/test_orchestration.py
+```
+
+**Unit Test Coverage:**
 - **Imports & Structure** (26 tests): Validates all modules load correctly
 - **Task Routing** (16 tests): Tests keyword-based intent detection for all task types
 - **Config** (6 tests): Settings loading and environment handling
 - **Session** (9 tests): Session management and persistence
+
+**E2E Test Coverage:**
+- Direct Q&A workflow
+- Planning workflow
+- Creative problem-solving workflow
+- Session persistence across queries
 
 All tests pass without requiring API calls or external services.
 
