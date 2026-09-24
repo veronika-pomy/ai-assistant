@@ -93,6 +93,38 @@ User Input → Agent (SDK) → Tool Calls → Tool Execution → Streaming Respo
                 └──────────── Session persists ───────────────┘
 ```
 
+#### Orchestration Flow
+
+Nelle uses an **intent-routed multi-agent workflow**: a deterministic keyword router dispatches
+each query to one of four workflows. The research workflow follows a **plan → parallel fan-out →
+synthesize** pipeline; the others are single-agent invocations.
+
+```
+                ┌──────────────┐
+   user  ──►    │  app.py REPL │  ◄── streams status + output
+                └──────┬───────┘
+                       ▼
+                ┌──────────────┐         ┌────────────────────┐
+                │ TaskManager  │◄──────► │ SessionManager     │
+                └──────┬───────┘         │ (in-memory history)│
+                       ▼                 └────────────────────┘
+              keyword router
+        ┌────────┬────────┬────────┐
+        ▼        ▼        ▼        ▼
+     DIRECT  CREATIVE PLANNING  RESEARCH
+      Solver   Solver  Planner     │
+                                   ▼
+                             Planner → SearchPlan(5)
+                                   │
+                         asyncio.gather (fan-out)
+                       ┌────┬────┬────┬────┬────┐
+                       ▼    ▼    ▼    ▼    ▼
+                    Searcher × 5 (web_search tool)
+                       └────┴────┴─┬──┴────┴────┘
+                                   ▼
+                             Writer → Report
+```
+
 #### Key Components
 
 **1. Session Management (`SQLiteSession`)**

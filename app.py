@@ -13,7 +13,7 @@ console = Console()
 
 
 async def main():
-    """Main REPL loop for Nelle assistant."""
+    """Main REPL loop for Nelle assistant. Handles user input and task execution."""
     # Initialize
     settings = get_settings()
     show_welcome(console)
@@ -23,7 +23,7 @@ async def main():
 
     first = True
 
-    # REPL loop
+    # REPL - Read-Eval-Print Loop
     while True:
         user_input = prompt_user(console, first=first)
         first = False
