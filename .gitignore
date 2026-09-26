@@ -13,5 +13,3 @@ virtualenv/
 Thumbs.db
 
 .vscode/
-
-/docs
