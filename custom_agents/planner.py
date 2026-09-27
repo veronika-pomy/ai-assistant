@@ -66,6 +66,8 @@ def create_planner_agent(model: str = None, how_many_searches: int | None = None
         Agent instance configured to output a SearchPlan of exactly N items.
     """
     n = how_many_searches if how_many_searches is not None else get_settings().how_many_searches
+    if n < 1:
+        raise ValueError("how_many_searches must be positive")
     return Agent(
         name="Planner",
         instructions=PLANNER_INSTRUCTIONS_TEMPLATE.format(how_many_searches=n),
