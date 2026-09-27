@@ -144,3 +144,23 @@ Replaces keyword routing with an LLM agent that owns routing, delegation, and pr
 **As a user**, I want Nelle to send me a Telegram message when a search/research finishes — but only when I explicitly ask, so that I'm not spammed.
 - [ ] A `notify_telegram` tool posts to the Bot API; instructions restrict it to explicit user requests.
 - [ ] Missing `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` produces a clear error, not a crash.
+
+---
+
+## Bugs
+
+Defects surfaced by later work. Independent of epic numbering — completed epics stay frozen, bugs get their own slot here.
+
+### B1 Live-stream line duplication on long answers (S) 🐛
+**As a user**, I want long streamed answers to render cleanly, so the first wrapped paragraph doesn't appear repeated in scrollback.
+- [ ] Streaming a paragraph that wraps past terminal width leaves no duplicated copies in the final output.
+- [ ] Manual repro (research query with a long lead paragraph) renders clean.
+
+**Root cause:** the streaming buffer in `ui/renderer.py:_render_token_delta` updates a `Live` block with `Text(self._live_buffer)`. When the buffer grows past one terminal line and wraps, Rich's line-count tracking gets out of step with the terminal's actual wrap width, so a redraw prints the growing content without properly clearing the previous frame. The first wrapped paragraph ends up repeated several times in scrollback before the rest renders correctly.
+
+**Approach (cheapest first):**
+- Set an explicit width on the `Text` renderable so Rich uses the same wrap width it tracks.
+- Wrap the buffer in a `Group` or `Padding` renderable that Rich handles more predictably than raw `Text`.
+- Drop `Live` for streaming entirely and `console.print(delta, end="")` each token directly. Loses the smooth in-place update but avoids the class of bug; may be the right long-term move.
+
+**Repro:** research query with a lead paragraph longer than one terminal line, terminal ~100 cols.
