@@ -1,7 +1,19 @@
+from pydantic import BaseModel, Field
 from agents import Agent, ModelSettings
 from tools.web_search import get_web_search_tool
 
 from config.settings import get_model_name
+
+
+class SearchSummary(BaseModel):
+    """Structured result of a single web search.
+
+    Length is enforced by the instructions, not a schema constraint.
+    """
+    query: str = Field(description="The search query that produced this summary")
+    summary: str = Field(
+        description="Concise 2-3 paragraph summary of findings (under 300 words)"
+    )
 
 
 SEARCHER_INSTRUCTIONS = """
@@ -16,7 +28,9 @@ Your summary should:
 - Be objective and informative
 - Cite or reference the types of sources when relevant
 
-Reply only with the summary text - no preamble or meta-commentary.
+Return a SearchSummary with:
+- query: the original search query you were asked to research
+- summary: the summary text only, no preamble or meta-commentary
 """
 
 
@@ -24,17 +38,10 @@ def create_searcher_agent(model: str = None) -> Agent:
     """Factory function to create searcher agent with web search capability.
 
     Args:
-        model: Model name override (uses MODEL_NAME env var if not specified)
+        model: Model name override (falls back to configured MODEL_NAME).
 
     Returns:
-        Agent instance configured with WebSearchTool
-
-    Example:
-        >>> from agents import Runner
-        >>> import asyncio
-        >>> agent = create_searcher_agent()
-        >>> result = asyncio.run(Runner.run(agent, "latest AI frameworks"))
-        >>> print(result.final_output)  # Summary of search results
+        Agent instance configured with WebSearchTool and SearchSummary output.
     """
     # Require tool usage - searcher must use web search
     settings = ModelSettings(tool_choice="required")
@@ -44,5 +51,6 @@ def create_searcher_agent(model: str = None) -> Agent:
         instructions=SEARCHER_INSTRUCTIONS,
         tools=[get_web_search_tool()],
         model=model or get_model_name(),
-        model_settings=settings
+        model_settings=settings,
+        output_type=SearchSummary,
     )

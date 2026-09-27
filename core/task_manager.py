@@ -10,7 +10,7 @@ from config.settings import get_settings
 from core.events import Event, ReportEvent, StatusEvent
 from custom_agents.solver import create_solver_agent
 from custom_agents.planner import create_planner_agent, SearchPlan
-from custom_agents.searcher import create_searcher_agent
+from custom_agents.searcher import create_searcher_agent, SearchSummary
 from custom_agents.writer import create_writer_agent, Report
 
 
@@ -157,9 +157,9 @@ class TaskManager:
         result = await Runner.run(agent, query, session=session)
         return result.final_output
 
-    async def _run_searches(self, plan: SearchPlan, session) -> list[str]:
+    async def _run_searches(self, plan: SearchPlan, session) -> list[SearchSummary]:
         """Execute search agent for each query in parallel."""
-        async def search_single(search_item):
+        async def search_single(search_item) -> SearchSummary:
             agent = create_searcher_agent(self.settings.model_name)
             result = await Runner.run(agent, search_item.query, session=session)
             return result.final_output
@@ -169,12 +169,14 @@ class TaskManager:
 
         return results
 
-    async def _run_writer(self, query: str, search_results: list[str], session) -> Report:
+    async def _run_writer(
+        self, query: str, search_results: list[SearchSummary], session
+    ) -> Report:
         """Execute writer agent to synthesize research."""
         context = f"Original Query: {query}\n\n"
         context += "Research Summaries:\n\n"
         for i, result in enumerate(search_results, 1):
-            context += f"### Source {i}\n{result}\n\n"
+            context += f"### Source {i} — query: {result.query}\n{result.summary}\n\n"
 
         agent = create_writer_agent(self.settings.model_name)
         result = await Runner.run(agent, context, session=session)
