@@ -7,6 +7,7 @@ from agents import Runner
 
 # Local imports
 from config.settings import get_settings
+from core.events import Event, ReportEvent, StatusEvent
 from custom_agents.solver import create_solver_agent
 from custom_agents.planner import create_planner_agent, SearchPlan
 from custom_agents.searcher import create_searcher_agent
@@ -24,110 +25,75 @@ class TaskType(Enum):
 class TaskManager:
     """Orchestrates agent execution based on task type.
 
-    This manager analyzes incoming queries, determines the appropriate
-    workflow, and coordinates agent execution with status updates.
+    Yields typed :class:`core.events.Event` values; the UI decides how to
+    render them.
     """
 
     def __init__(self):
         """Initialize task manager with settings."""
         self.settings = get_settings()
 
-    async def run(self, query: str, session) -> AsyncIterator[str]:
-        """Main entry point - analyzes query and runs appropriate workflow.
+    async def run(self, query: str, session) -> AsyncIterator[Event]:
+        """Analyze the query and drive the appropriate workflow.
 
         Args:
             query: User's query or task
             session: Session instance for conversation history
 
         Yields:
-            Status updates and final output as strings
-
-        Example:
-            >>> manager = TaskManager()
-            >>> async for update in manager.run("What is 5+5?", session):
-            ...     print(update)
+            Typed events describing progress and results.
         """
-        # Analyze what type of task this is
         task_type = await self._analyze_task_type(query)
 
-        yield f"[dim]Detected task type: {task_type.value}[/dim]"
+        yield StatusEvent(text=f"Detected task type: {task_type.value}", kind="trace")
 
-        # Route to appropriate workflow
         if task_type == TaskType.RESEARCH:
-            async for update in self._run_research_workflow(query, session):
-                yield update
+            async for event in self._run_research_workflow(query, session):
+                yield event
         elif task_type == TaskType.PLANNING:
-            async for update in self._run_planning_workflow(query, session):
-                yield update
+            async for event in self._run_planning_workflow(query, session):
+                yield event
         elif task_type == TaskType.CREATIVE:
-            async for update in self._run_creative_workflow(query, session):
-                yield update
+            async for event in self._run_creative_workflow(query, session):
+                yield event
         else:  # DIRECT
-            async for update in self._run_direct_workflow(query, session):
-                yield update
+            async for event in self._run_direct_workflow(query, session):
+                yield event
 
     async def _analyze_task_type(self, query: str) -> TaskType:
-        """Determine task type from query keywords.
-
-        Args:
-            query: User's query
-
-        Returns:
-            TaskType enum value
-        """
+        """Determine task type from query keywords."""
         query_lower = query.lower()
 
-        # Research indicators
         research_keywords = ['research', 'find out about', 'learn about', 'investigate',
                             'search for', 'look up', 'what are the latest', 'trends in']
         if any(keyword in query_lower for keyword in research_keywords):
             return TaskType.RESEARCH
 
-        # Planning indicators
         planning_keywords = ['plan', 'steps to', 'how to', 'roadmap', 'strategy',
                            'break down', 'organize', 'outline']
         if any(keyword in query_lower for keyword in planning_keywords):
             return TaskType.PLANNING
 
-        # Creative indicators (design, architecture, complex reasoning)
         creative_keywords = ['design', 'architect', 'create', 'build', 'develop',
                            'system for', 'approach to', 'solution for']
         if any(keyword in query_lower for keyword in creative_keywords):
             return TaskType.CREATIVE
 
-        # Default to direct for simple questions
         return TaskType.DIRECT
 
-    async def _run_direct_workflow(self, query: str, session) -> AsyncIterator[str]:
-        """Direct Q&A workflow - just use solver agent.
-
-        Args:
-            query: User's query
-            session: Session instance
-
-        Yields:
-            Status updates and final answer
-        """
-        yield "[yellow]Solving directly...[/yellow]"
+    async def _run_direct_workflow(self, query: str, session) -> AsyncIterator[Event]:
+        """Direct Q&A workflow - just use solver agent."""
+        yield StatusEvent(text="Solving directly...", kind="info")
 
         agent = create_solver_agent(self.settings.model_name)
         result = await Runner.run(agent, query, session=session)
 
-        yield result.final_output
+        yield ReportEvent(markdown=result.final_output)
 
-    async def _run_planning_workflow(self, query: str, session) -> AsyncIterator[str]:
-        """Planning workflow - break down task into steps.
+    async def _run_planning_workflow(self, query: str, session) -> AsyncIterator[Event]:
+        """Planning workflow - break down task into steps."""
+        yield StatusEvent(text="Creating plan...", kind="info")
 
-        Args:
-            query: User's query
-            session: Session instance
-
-        Yields:
-            Status updates and plan
-        """
-        yield "[yellow]Creating plan...[/yellow]"
-
-        # Use planner to break down the task
         agent = create_planner_agent(
             self.settings.model_name,
             how_many_searches=self.settings.how_many_searches,
@@ -136,77 +102,54 @@ class TaskManager:
 
         plan = result.final_output
 
-        # Format the plan output
         if isinstance(plan, SearchPlan):
             output = "## Plan\n\n"
             for i, item in enumerate(plan.searches, 1):
                 output += f"{i}. **{item.query}**\n   *{item.reason}*\n\n"
-            yield output
+            yield ReportEvent(markdown=output)
         else:
-            yield str(plan)
+            yield ReportEvent(markdown=str(plan))
 
-    async def _run_creative_workflow(self, query: str, session) -> AsyncIterator[str]:
-        """Creative workflow - use solver with full reasoning.
-
-        Args:
-            query: User's query
-            session: Session instance
-
-        Yields:
-            Status updates and creative solution
-        """
-        yield "[yellow]Thinking creatively...[/yellow]"
+    async def _run_creative_workflow(self, query: str, session) -> AsyncIterator[Event]:
+        """Creative workflow - use solver with full reasoning."""
+        yield StatusEvent(text="Thinking creatively...", kind="info")
 
         agent = create_solver_agent(self.settings.model_name)
         result = await Runner.run(agent, query, session=session)
 
-        yield result.final_output
+        yield ReportEvent(markdown=result.final_output)
 
-    async def _run_research_workflow(self, query: str, session) -> AsyncIterator[str]:
-        """Research workflow: plan → search → write.
-
-        Args:
-            query: User's research query
-            session: Session instance
-
-        Yields:
-            Status updates and final research report
-        """
-        # Step 1: Create search plan
-        yield "[yellow]Planning research...[/yellow]"
+    async def _run_research_workflow(self, query: str, session) -> AsyncIterator[Event]:
+        """Research workflow: plan → search → write."""
+        yield StatusEvent(text="Planning research...", kind="info")
         plan = await self._run_planner(query, session)
 
-        yield f"[green]Created plan with {len(plan.searches)} searches[/green]"
+        yield StatusEvent(
+            text=f"Created plan with {len(plan.searches)} searches",
+            kind="step",
+        )
 
-        # Step 2: Execute searches in parallel
-        yield "[yellow]Searching the web...[/yellow]"
+        yield StatusEvent(text="Searching the web...", kind="info")
         search_results = await self._run_searches(plan, session)
 
-        yield f"[green]Completed {len(search_results)} searches[/green]"
+        yield StatusEvent(
+            text=f"Completed {len(search_results)} searches",
+            kind="step",
+        )
 
-        # Step 3: Write comprehensive report
-        yield "[yellow]Writing report...[/yellow]"
+        yield StatusEvent(text="Writing report...", kind="info")
         report = await self._run_writer(query, search_results, session)
 
-        # Format final output
         output = f"## Summary\n\n{report.summary}\n\n"
         output += f"{report.markdown_report}\n\n"
         output += "## Follow-up Questions\n\n"
         for i, question in enumerate(report.follow_ups, 1):
             output += f"{i}. {question}\n"
 
-        yield output
+        yield ReportEvent(markdown=output)
 
     async def _run_planner(self, query: str, session) -> SearchPlan:
-        """Execute planner agent to create search plan.
-
-        Args:
-            query: Research query
-            session: Session instance
-
-        Returns:
-            SearchPlan with list of searches
-        """
+        """Execute planner agent to create search plan."""
         agent = create_planner_agent(
             self.settings.model_name,
             how_many_searches=self.settings.how_many_searches,
@@ -215,39 +158,19 @@ class TaskManager:
         return result.final_output
 
     async def _run_searches(self, plan: SearchPlan, session) -> list[str]:
-        """Execute search agent for each query in parallel.
-
-        Args:
-            plan: SearchPlan with queries
-            session: Session instance
-
-        Returns:
-            List of search result summaries
-        """
+        """Execute search agent for each query in parallel."""
         async def search_single(search_item):
-            """Run a single search."""
             agent = create_searcher_agent(self.settings.model_name)
             result = await Runner.run(agent, search_item.query, session=session)
             return result.final_output
 
-        # Execute all searches in parallel
         tasks = [search_single(item) for item in plan.searches]
         results = await asyncio.gather(*tasks)
 
         return results
 
     async def _run_writer(self, query: str, search_results: list[str], session) -> Report:
-        """Execute writer agent to synthesize research.
-
-        Args:
-            query: Original research query
-            search_results: List of search summaries
-            session: Session instance
-
-        Returns:
-            Report object with synthesis
-        """
-        # Format input for writer
+        """Execute writer agent to synthesize research."""
         context = f"Original Query: {query}\n\n"
         context += "Research Summaries:\n\n"
         for i, result in enumerate(search_results, 1):
