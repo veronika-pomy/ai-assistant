@@ -150,11 +150,10 @@ synthesize** pipeline; the others are single-agent invocations.
 - In-memory session maintains conversation history automatically
 - Conversation context persists across multiple tasks within one run
 
-**4. Streaming & Output (`core/streaming.py`, `ui/`)**
-- `StreamingUI` handles live-rendered status updates
-- Rich markup for formatted console output
-- Markdown report rendering for final outputs
-- Status messages stream as agents execute
+**4. Event Contract & Rendering (`core/events.py`, `ui/renderer.py`)**
+- `core/` yields typed pydantic events (`StatusEvent`, `TokenDelta`, `ReportEvent`, `TodoUpdate`, `ConfirmRequest`, `QuestionEvent`)
+- `ui/renderer.py` owns the console and the Rich `Live` lifecycle for `TokenDelta` streams
+- Direct/creative answers stream via `Runner.run_streamed`; structured runs (planner/writer) stay blocking with status events around them
 
 **5. Agent & Runner (OpenAI Agents SDK)**
 - `Agent` defines agent's name, instructions, tools, and model
@@ -178,31 +177,34 @@ synthesize** pipeline; the others are single-agent invocations.
 
 ```
 ai-assistant/
-├── app.py                          # Main REPL entry point (69 lines)
+├── app.py                          # Thin REPL: prompt → events → renderer
 ├── config/
-│   └── settings.py                 # Configuration & environment loading
+│   └── settings.py                 # Settings + get_model_name() helper
 ├── core/
 │   ├── task_manager.py             # Orchestration & workflow routing
 │   ├── session.py                  # Session management wrapper
-│   └── streaming.py                # Live streaming UI utilities
+│   └── events.py                   # Typed pydantic event vocabulary (core→UI)
 ├── custom_agents/
 │   ├── solver.py                   # Direct problem-solving agent
-│   ├── planner.py                  # Search planning agent
-│   ├── searcher.py                 # Web search agent
-│   └── writer.py                   # Report synthesis agent
+│   ├── planner.py                  # Search planning agent (SearchPlan)
+│   ├── searcher.py                 # Web search agent (SearchSummary)
+│   └── writer.py                   # Report synthesis agent (Report)
 ├── ui/
 │   ├── banner.py                   # Welcome banner
 │   ├── prompts.py                  # User input handling
-│   └── formatters.py               # Output formatting
+│   ├── renderer.py                 # Event → console dispatch + Live streaming
+│   └── formatters.py               # Markdown + error panel helpers
 ├── tools/
 │   ├── base.py                     # Tool base abstractions
 │   └── web_search.py               # Web search tool wrapper
 ├── tests/
-│   ├── unit/                       # Unit & integration tests (63 total)
-│   │   ├── test_config.py          # Config/settings tests (6)
-│   │   ├── test_imports.py         # Module structure tests (26)
+│   ├── unit/                       # Unit tests (87 total)
+│   │   ├── test_config.py          # Config/settings + get_model_name (12)
+│   │   ├── test_events.py          # Event models + TaskManager event stream (12)
+│   │   ├── test_imports.py         # Module structure tests (23)
+│   │   ├── test_searcher.py        # SearchSummary + searcher factory (7)
 │   │   ├── test_session.py         # Session management tests (9)
-│   │   └── test_task_manager.py    # Orchestration & routing tests (16)
+│   │   └── test_task_manager.py    # Task type detection tests (24)
 │   └── e2e/
 │       └── test_orchestration.py   # End-to-end workflow validation
 ├── pytest.ini                       # Pytest configuration
@@ -215,11 +217,13 @@ Test suite organized into unit and end-to-end tests:
 
 ```
 tests/
-├── unit/                          # 63 unit & integration tests
-│   ├── test_config.py             (6 tests)
-│   ├── test_imports.py            (26 tests)
+├── unit/                          # 87 unit tests
+│   ├── test_config.py             (12 tests)
+│   ├── test_events.py             (12 tests)
+│   ├── test_imports.py            (23 tests)
+│   ├── test_searcher.py           (7 tests)
 │   ├── test_session.py            (9 tests)
-│   └── test_task_manager.py       (16 tests)
+│   └── test_task_manager.py       (24 tests)
 └── e2e/
     └── test_orchestration.py      (safe workflows validation)
 ```
@@ -227,7 +231,7 @@ tests/
 **Running tests:**
 
 ```bash
-# Run all unit tests (63 tests)
+# Run all unit tests
 pytest tests/unit -v
 
 # Run all tests (unit + e2e)
@@ -238,10 +242,12 @@ python tests/e2e/test_orchestration.py
 ```
 
 **Unit Test Coverage:**
-- **Imports & Structure** (26 tests): Validates all modules load correctly
-- **Task Routing** (16 tests): Tests keyword-based intent detection for all task types
-- **Config** (6 tests): Settings loading and environment handling
-- **Session** (9 tests): Session management and persistence
+- **Config** Settings loading, `get_model_name()`, `HOW_MANY_SEARCHES` wiring
+- **Events** (12 tests): Event model round-trips + TaskManager event stream (stubbed Runner)
+- **Imports & Structure** Validates all modules load correctly
+- **Searcher** `SearchSummary` model + searcher factory
+- **Session** Session management and persistence
+- **Task Routing** Keyword-based intent detection for all task types
 
 **E2E Test Coverage:**
 - Direct Q&A workflow

@@ -37,29 +37,29 @@ E5 (memory) has no dependency on E2–E4 beyond T1.1 and can run in parallel wit
 
 Cleans up the core/UI boundary so every later feature has a place to plug in.
 
-### T1.4 Config consolidation (S)
+### T1.4 Config consolidation (S) ✅
 **As a developer**, I want all model/config reads to go through one place, so that provider switching (E3) has a single seam.
-- [ ] `MODEL_NAME` is read in exactly one module; the four per-agent `os.getenv` duplicates are gone.
-- [ ] Unused settings (`how_many_searches`, `session_type`) are either wired up or deleted.
-- [ ] Existing config tests pass and cover the new helper.
+- [x] `MODEL_NAME` is read in exactly one module; the four per-agent `os.getenv` duplicates are gone.
+- [x] Unused settings (`how_many_searches`, `session_type`) are either wired up or deleted. *(how_many_searches wired through planner; session_type carries a TODO pointing at T5.1.)*
+- [x] Existing config tests pass and cover the new helper.
 
-### T1.1 Event-based core/UI split (M)
+### T1.1 Event-based core/UI split (M) ✅
 **As a developer**, I want core orchestration to yield typed events instead of Rich-markup strings, so that UI logic lives only in `ui/` and new displays (todos, traces, streams) are additive.
-- [ ] Core modules contain no Rich markup; `app.py` no longer sniffs strings for `##`.
-- [ ] A pydantic event vocabulary exists (`StatusEvent`, `TokenDelta`, `ReportEvent`, `TodoUpdate`, `ConfirmRequest`, `QuestionEvent`).
-- [ ] A single renderer maps events to console output; app.py shrinks to a thin loop.
-- [ ] Unit test asserts event types yielded from a stubbed run (no live API).
+- [x] Core modules contain no Rich markup; `app.py` no longer sniffs strings for `##`.
+- [x] A pydantic event vocabulary exists (`StatusEvent`, `TokenDelta`, `ReportEvent`, `TodoUpdate`, `ConfirmRequest`, `QuestionEvent`).
+- [x] A single renderer maps events to console output; app.py shrinks to a thin loop.
+- [x] Unit test asserts event types yielded from a stubbed run (no live API).
 
-### T1.2 Pydantic output app-wide (S)
+### T1.2 Pydantic output app-wide (S) ✅
 **As a developer**, I want every agent boundary and core→UI message to be a pydantic model, so that parsing is validated instead of string-matched.
-- [ ] Searcher output has a typed summary model; solver keeps free text unless a model adds value.
-- [ ] No `str.startswith`/keyword parsing remains between components.
+- [x] Searcher output has a typed summary model; solver keeps free text unless a model adds value.
+- [x] No `str.startswith`/keyword parsing remains between components.
 
-### T1.3 Token streaming (M)
+### T1.3 Token streaming (M) ✅
 **As a user**, I want answers to appear as they're generated, so that long responses don't sit behind a blank wait.
-- [ ] Final answers stream token-by-token via `Runner.run_streamed()`.
-- [ ] The dead `core/streaming.py` module is folded into the renderer and deleted.
-- [ ] Unit test: fake event stream → deltas rendered in order.
+- [x] Final answers stream token-by-token via `Runner.run_streamed()`.
+- [x] The dead `core/streaming.py` module is folded into the renderer and deleted.
+- [x] Unit test: fake event stream → deltas rendered in order.
 
 ---
 
