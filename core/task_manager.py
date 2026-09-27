@@ -4,10 +4,11 @@ from typing import AsyncIterator
 
 # OpenAI Agents SDK imports
 from agents import Runner
+from openai.types.responses import ResponseTextDeltaEvent
 
 # Local imports
 from config.settings import get_settings
-from core.events import Event, ReportEvent, StatusEvent
+from core.events import Event, ReportEvent, StatusEvent, TokenDelta
 from custom_agents.solver import create_solver_agent
 from custom_agents.planner import create_planner_agent, SearchPlan
 from custom_agents.searcher import create_searcher_agent, SearchSummary
@@ -82,13 +83,12 @@ class TaskManager:
         return TaskType.DIRECT
 
     async def _run_direct_workflow(self, query: str, session) -> AsyncIterator[Event]:
-        """Direct Q&A workflow - just use solver agent."""
+        """Direct Q&A workflow - just use solver agent, streamed."""
         yield StatusEvent(text="Solving directly...", kind="info")
 
         agent = create_solver_agent(self.settings.model_name)
-        result = await Runner.run(agent, query, session=session)
-
-        yield ReportEvent(markdown=result.final_output)
+        async for delta in self._stream_agent(agent, query, session):
+            yield delta
 
     async def _run_planning_workflow(self, query: str, session) -> AsyncIterator[Event]:
         """Planning workflow - break down task into steps."""
@@ -111,13 +111,12 @@ class TaskManager:
             yield ReportEvent(markdown=str(plan))
 
     async def _run_creative_workflow(self, query: str, session) -> AsyncIterator[Event]:
-        """Creative workflow - use solver with full reasoning."""
+        """Creative workflow - use solver with full reasoning, streamed."""
         yield StatusEvent(text="Thinking creatively...", kind="info")
 
         agent = create_solver_agent(self.settings.model_name)
-        result = await Runner.run(agent, query, session=session)
-
-        yield ReportEvent(markdown=result.final_output)
+        async for delta in self._stream_agent(agent, query, session):
+            yield delta
 
     async def _run_research_workflow(self, query: str, session) -> AsyncIterator[Event]:
         """Research workflow: plan → search → write."""
@@ -182,3 +181,17 @@ class TaskManager:
         result = await Runner.run(agent, context, session=session)
 
         return result.final_output
+
+    async def _stream_agent(self, agent, prompt: str, session) -> AsyncIterator[TokenDelta]:
+        """Run an agent with streaming and yield TokenDelta events.
+
+        Only text deltas are surfaced; other stream events (tool calls,
+        agent handoffs, etc.) are ignored — this workflow is for
+        single-agent free-text output where tokens are the useful signal.
+        """
+        result = Runner.run_streamed(agent, prompt, session=session)
+        async for event in result.stream_events():
+            if event.type == "raw_response_event" and isinstance(
+                event.data, ResponseTextDeltaEvent
+            ):
+                yield TokenDelta(text=event.data.delta)

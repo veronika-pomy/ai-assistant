@@ -45,6 +45,10 @@ async def main():
         except Exception as e:
             show_error(console, f"Error: {str(e)}")
             console.print("\n[dim]Hint: Check your .env configuration and API key.[/dim]")
+        finally:
+            # Rich Live and input() collide; always close any live stream
+            # before next prompt.
+            renderer.finish_turn()
 
 
 if __name__ == "__main__":

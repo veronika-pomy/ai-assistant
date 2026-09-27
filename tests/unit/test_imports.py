@@ -21,12 +21,6 @@ class TestCoreImports:
         from core.session import SessionManager
         assert SessionManager is not None
 
-    def test_import_streaming_ui(self):
-        """Verify StreamingUI can be imported."""
-        from core.streaming import StreamingUI
-        assert StreamingUI is not None
-
-
 class TestConfigImports:
     """Test config module imports."""
 
@@ -137,7 +131,7 @@ class TestModuleStructure:
         import core
         assert hasattr(core, 'task_manager')
         assert hasattr(core, 'session')
-        assert hasattr(core, 'streaming')
+        assert hasattr(core, 'events')
 
     def test_all_ui_modules_exist(self):
         """Verify all UI modules can be imported."""
