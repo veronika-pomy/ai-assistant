@@ -73,7 +73,7 @@ Replaces keyword routing with an LLM agent that owns routing, delegation, and pr
 - [ ] Keyword classification (`_analyze_task_type`) is removed; an orchestrator agent routes via tool selection.
 - [ ] Planner, solver, and a `run_research` pipeline tool are exposed as tools; a direct web-search tool covers simple lookups (no full research pipeline).
 - [ ] Parallel 5-site research still runs concurrently (session-less sub-runs).
-- [ ] Simple question → no research tools called; "research X" → full pipeline; verified manually with the e2e script.
+- [ ] Simple question → no research tools called; "research X" → full pipeline; verified manually by running `python app.py`.
 
 ### T2.2 Turn-by-turn trace display (M)
 **As a user**, I want to see which agent/tool the orchestrator is invoking each turn, so that I can follow what it's doing.

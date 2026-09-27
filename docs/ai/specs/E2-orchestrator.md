@@ -25,7 +25,7 @@ Replaces keyword routing (`task_manager.py:_analyze_task_type`, pure keyword lis
   2. `asyncio.gather` **session-less** `Runner.run(searcher, q)` calls — preserves today's parallelism, which a naive as-tool loop would serialize, and avoids concurrent SQLiteSession writes,
   3. run writer over the summaries, return the report markdown.
 - New `core/orchestrator_runner.py` replacing `TaskManager`: `run(user_input, session) -> AsyncIterator[Event]` wrapping `Runner.run_streamed(orchestrator, user_input, session=session, max_turns=15)`. Only this top-level run gets `session=`.
-- Delete `core/task_manager.py` and its keyword-classification tests; the routing policy now lives in instructions, exercised by the e2e script.
+- Delete `core/task_manager.py` and its keyword-classification tests; the routing policy now lives in instructions, exercised manually via `python app.py`.
 
 **Routing policy sketch (instructions):** answer simple/conversational queries yourself or via `answer`; use `web_search` for a single factual lookup; use `plan_research` when the user wants a plan; use `run_research` only for genuinely deep questions — and set todos first for any multi-step task.
 
@@ -36,7 +36,7 @@ Replaces keyword routing (`task_manager.py:_analyze_task_type`, pure keyword lis
 - *`tool_choice="required"` on searcher:* SDK auto-resets tool_choice after the first call; also pass `max_turns` to nested runs.
 - *as_tool sub-runs don't stream:* accepted for v1; see roadmap.
 
-**Test:** assert tool wiring (`[t.name for t in orchestrator.tools]`); monkeypatch `Runner.run_streamed` with canned events and assert `orchestrator_runner` yields expected event types. Manual e2e: one simple query, one research query.
+**Test:** assert tool wiring (`[t.name for t in orchestrator.tools]`); monkeypatch `Runner.run_streamed` with canned events and assert `orchestrator_runner` yields expected event types. Manual smoke via `python app.py`: one simple query, one research query.
 
 ## T2.2 Turn-by-turn trace display
 

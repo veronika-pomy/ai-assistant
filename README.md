@@ -1,279 +1,52 @@
 # Nelle - Agent Assistant
 
-An autonomous agent built with the OpenAI Agents SDK. Nelle breaks down problems into checklists, executes each step, and reports progress with live-streamed styled terminal output.
+An autonomous agent built with the OpenAI Agents SDK. Nelle takes a natural-language request in the terminal, decides how deeply to dig, and streams the answer back live.
 
 ![Nelle Helpful Assistant](demo.png)
 
 ---
 
-**📘 For AI Agents/Assistants**: Please read [CLAUDE.md](CLAUDE.md) for critical virtual environment setup and Python command usage instructions.
+**For AI Agents/Assistants:** please read [CLAUDE.md](CLAUDE.md) for the virtual environment setup and Python command conventions.
 
 ## Features
 
-- **Interactive Terminal UI**: Styled ASCII art and Rich live-rendered console output
-- **Multi-Agent Orchestration**: Specialized agents (Solver, Planner, Searcher, Writer) execute workflows autonomously
-- **Intent-Based Routing**: Keyword analysis automatically routes queries to optimal workflows (research, planning, creative, direct)
-- **Parallel Web Search**: Research tasks execute multiple searches concurrently for speed
-- **Conversational Memory**: In-memory session persistence maintains context across multiple tasks
-- **Live Streaming Output**: Real-time Rich markup rendering as agents work
-- **Synthesis & Reporting**: Automated report generation from research results
-
-## Tech Stack
-
-**Core Dependencies:**
-- **Python 3.10+**
-- **OpenAI Agents SDK** (`openai-agents==0.22.0`) - Agentic framework with built-in tool-calling loop, session management, and streaming
-- **OpenAI API** (`openai>=1.0.0`) - Model access
-- **Rich** (`rich>=13.0.0`) - Terminal formatting with live rendering
-- **python-dotenv** (`python-dotenv>=1.0.0`) - Environment variable management
+- Chat with Nelle from your terminal — styled, streamed output.
+- Nelle picks its own approach per turn: quick answer, a single web search, or a full multi-search research pipeline.
+- Multi-turn memory within a session.
+- Structured research reports with follow-up questions.
 
 ## Setup
 
-1. **Create a virtual environment:**
+1. Create and activate a virtual environment:
    ```sh
    python3 -m venv .venv
-   ```
-
-2. **Activate the virtual environment:**
-   ```sh
    source .venv/bin/activate
    ```
-
-3. **Install dependencies:**
+2. Install dependencies:
    ```sh
    pip install -r requirements.txt
    ```
-
-4. **Configure environment:**
-   Create a `.env` file in the project root:
-   ```
-   OPENAI_API_KEY=your_api_key_here
-   MODEL_NAME=model-name
-   ```
-
-5. **Run the application:**
+3. Copy `.env.example` to `.env` and fill in `OPENAI_API_KEY`. Other settings have sensible defaults.
+4. Run:
    ```sh
    python app.py
    ```
 
-6. **To deactivate the virtual environment when done:**
-   ```sh
-   deactivate
-   ```
+## Using Nelle
 
-## How to Use
+At the `You >>` prompt, type any request. Examples:
 
-1. Launch the application: `python app.py`
-2. Enter a query or task when prompted
-3. Nelle automatically detects intent and routes to the appropriate workflow
-4. Watch status updates as agents execute and synthesize results
-5. Continue with more queries, or type `exit` or `quit` to close
+- `What is 5 + 5?` — direct answer.
+- `Plan learning Python in 30 days` — plan.
+- `What's the latest release of Python?` — single web lookup.
+- `Research the latest AI agent frameworks` — full research pipeline (costs more).
 
-**Example workflows:**
-- **Direct Q&A** (auto-routed): `"What is 5 + 5?"`
-- **Planning** (keywords: "plan", "how to", "steps to"): `"Plan learning Python in 30 days"`
-- **Creative** (keywords: "design", "architect", "create"): `"How would you design a distributed cache?"`
-- **Research** (keywords: "research", "find out", "investigate"): `"Research the latest AI frameworks"` ⚠️ (costs API calls)
+Type `exit` or `quit` to leave.
 
-## Model Configuration
+## Traces
 
-The model is set via the `MODEL_NAME` environment variable in `.env`. Change it to any model supported by your OpenAI API provider.
+View runs in the OpenAI traces dashboard: <https://platform.openai.com/traces>. The workflow name is configurable via `TRACE_WORKFLOW_NAME` in `.env`.
 
-**Example:**
-```
-MODEL_NAME=model-name
-```
+## For contributors
 
-## Architecture
-
-### SDK-Powered Agent Pattern
-
-This project uses the **OpenAI Agents SDK**, which abstracts away the manual tool-calling loop and message management into a high-level framework.
-
-#### Core Flow
-
-```
-User Input → Agent (SDK) → Tool Calls → Tool Execution → Streaming Response
-                ↑                                              ↓
-                └──────────── Session persists ───────────────┘
-```
-
-#### Orchestration Flow
-
-Nelle uses an **intent-routed multi-agent workflow**: a deterministic keyword router dispatches
-each query to one of four workflows. The research workflow follows a **plan → parallel fan-out →
-synthesize** pipeline; the others are single-agent invocations.
-
-```
-                ┌──────────────┐
-   user  ──►    │  app.py REPL │  ◄── streams status + output
-                └──────┬───────┘
-                       ▼
-                ┌──────────────┐         ┌────────────────────┐
-                │ TaskManager  │◄──────► │ SessionManager     │
-                └──────┬───────┘         │ (in-memory history)│
-                       ▼                 └────────────────────┘
-              keyword router
-        ┌────────┬────────┬────────┐
-        ▼        ▼        ▼        ▼
-     DIRECT  CREATIVE PLANNING  RESEARCH
-      Solver   Solver  Planner     │
-                                   ▼
-                             Planner → SearchPlan(5)
-                                   │
-                         asyncio.gather (fan-out)
-                       ┌────┬────┬────┬────┬────┐
-                       ▼    ▼    ▼    ▼    ▼
-                    Searcher × 5 (web_search tool)
-                       └────┴────┴─┬──┴────┴────┘
-                                   ▼
-                             Writer → Report
-```
-
-#### Key Components
-
-**1. Task Manager (`core/task_manager.py`)**
-- Analyzes incoming queries using keyword detection
-- Routes to appropriate workflow: research, planning, creative, or direct
-- Coordinates agent execution with status updates via async generators
-- Implements plan → parallel execute → synthesize pipeline for research
-
-**2. Custom Agents (`custom_agents/`)**
-- **Solver**: Direct Q&A and creative problem-solving
-- **Planner**: Creates structured search plans (5-search strategy)
-- **Searcher**: Executes web searches with the `WebSearchTool`
-- **Writer**: Synthesizes search results into comprehensive reports
-- All agents use Pydantic `output_type` for structured outputs (SearchPlan, Report)
-
-**3. Session Management (`core/session.py`)**
-- Wraps OpenAI Agents SDK's SQLiteSession
-- In-memory session maintains conversation history automatically
-- Conversation context persists across multiple tasks within one run
-
-**4. Event Contract & Rendering (`core/events.py`, `ui/renderer.py`)**
-- `core/` yields typed pydantic events (`StatusEvent`, `TokenDelta`, `ReportEvent`, `TodoUpdate`, `ConfirmRequest`, `QuestionEvent`)
-- `ui/renderer.py` owns the console and the Rich `Live` lifecycle for `TokenDelta` streams
-- Direct/creative answers stream via `Runner.run_streamed`; structured runs (planner/writer) stay blocking with status events around them
-
-**5. Agent & Runner (OpenAI Agents SDK)**
-- `Agent` defines agent's name, instructions, tools, and model
-- `Runner.run` handles tool-calling loop and streaming internally
-- Yields streaming events and final output
-- No manual agentic loop needed
-
-#### Design Principles
-
-**SDK Abstraction**: The OpenAI Agents SDK eliminates boilerplate — no manual loop control, message formatting, or tool dispatch logic.
-
-**Declarative Tools**: Decorate a function with `@function_tool` and it becomes available to the agent. The SDK handles schema generation and invocation.
-
-**Conversational Continuity**: `SQLiteSession` tracks history automatically. The agent remembers prior tasks within the session without manual state management.
-
-**Scoped Task State**: Checklist state rides in a per-run `context` object (`RunContextWrapper[ChecklistState]`) rather than shared globals, so it can't bleed between unrelated tasks while conversational history still persists in the session.
-
-**Streaming UX**: Live-rendered output provides real-time feedback as the agent processes each step.
-
-## Project Structure
-
-```
-ai-assistant/
-├── app.py                          # Thin REPL: prompt → events → renderer
-├── config/
-│   └── settings.py                 # Settings + get_model_name() helper
-├── core/
-│   ├── task_manager.py             # Orchestration & workflow routing
-│   ├── session.py                  # Session management wrapper
-│   └── events.py                   # Typed pydantic event vocabulary (core→UI)
-├── custom_agents/
-│   ├── solver.py                   # Direct problem-solving agent
-│   ├── planner.py                  # Search planning agent (SearchPlan)
-│   ├── searcher.py                 # Web search agent (SearchSummary)
-│   └── writer.py                   # Report synthesis agent (Report)
-├── ui/
-│   ├── banner.py                   # Welcome banner
-│   ├── prompts.py                  # User input handling
-│   ├── renderer.py                 # Event → console dispatch + Live streaming
-│   └── formatters.py               # Markdown + error panel helpers
-├── tools/
-│   ├── base.py                     # Tool base abstractions
-│   └── web_search.py               # Web search tool wrapper
-├── tests/
-│   ├── unit/                       # Unit tests (87 total)
-│   │   ├── test_config.py          # Config/settings + get_model_name (12)
-│   │   ├── test_events.py          # Event models + TaskManager event stream (12)
-│   │   ├── test_imports.py         # Module structure tests (23)
-│   │   ├── test_searcher.py        # SearchSummary + searcher factory (7)
-│   │   ├── test_session.py         # Session management tests (9)
-│   │   └── test_task_manager.py    # Task type detection tests (24)
-│   └── e2e/
-│       └── test_orchestration.py   # End-to-end workflow validation
-├── pytest.ini                       # Pytest configuration
-└── requirements.txt                 # Dependencies (includes pytest)
-```
-
-## Testing
-
-Test suite organized into unit and end-to-end tests:
-
-```
-tests/
-├── unit/                          # 87 unit tests
-│   ├── test_config.py             (12 tests)
-│   ├── test_events.py             (12 tests)
-│   ├── test_imports.py            (23 tests)
-│   ├── test_searcher.py           (7 tests)
-│   ├── test_session.py            (9 tests)
-│   └── test_task_manager.py       (24 tests)
-└── e2e/
-    └── test_orchestration.py      (safe workflows validation)
-```
-
-**Running tests:**
-
-```bash
-# Run all unit tests
-pytest tests/unit -v
-
-# Run all tests (unit + e2e)
-pytest tests/ -v
-
-# Run end-to-end orchestration test (safe workflows)
-python tests/e2e/test_orchestration.py
-```
-
-**Unit Test Coverage:**
-- **Config** Settings loading, `get_model_name()`, `HOW_MANY_SEARCHES` wiring
-- **Events** (12 tests): Event model round-trips + TaskManager event stream (stubbed Runner)
-- **Imports & Structure** Validates all modules load correctly
-- **Searcher** `SearchSummary` model + searcher factory
-- **Session** Session management and persistence
-- **Task Routing** Keyword-based intent detection for all task types
-
-**E2E Test Coverage:**
-- Direct Q&A workflow
-- Planning workflow
-- Creative problem-solving workflow
-- Session persistence across queries
-
-All tests pass without requiring API calls or external services.
-
-## Observability
-
-View agent traces on OpenAI platform:
-
-<https://platform.openai.com/traces>
-
-## Future Enhancements
-
-- **Persistent storage**: Swap in-memory session for file-based SQLite
-- **Agent specialization**: Add domain-specific agents (code, math, design, etc.)
-- **Tool library expansion**: Add more tools beyond web search (calculator, code execution, etc.)
-- **Agent-to-agent collaboration**: Implement sub-task delegation
-- **Interactive refinement**: Allow users to refine or re-route mid-workflow
-- **Performance optimization**: Caching, token counting, and message trimming
-- **Error recovery**: Automatic retry with backoff and fallback strategies
-- **Observability**: OpenAI traces integration, metrics, and audit logs
-
----
-
-Built as a demonstration of SDK-powered agentic workflows with live streaming output.
+Design notes, backlog, and per-epic specs live in [docs/ai/](docs/ai/).

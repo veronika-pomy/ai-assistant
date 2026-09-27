@@ -39,8 +39,9 @@ pip install -r requirements.txt
 ```bash
 source .venv/bin/activate
 pytest tests/unit -v            # unit tests (no live API)
-pytest tests/ -v                # unit + e2e
 ```
+
+Live-API testing is manual: `python app.py`.
 
 **Run the app:**
 ```bash
@@ -99,8 +100,7 @@ ai-assistant/
 ├── config/                     # Configuration
 │   └── settings.py             # Settings + get_model_name() helper
 ├── tests/
-│   ├── unit/                   # Unit tests (Runner stubbed)
-│   └── e2e/                    # Live-API smoke scripts
+│   └── unit/                   # Unit tests (Runner stubbed)
 ├── docs/ai/                    # Backlog, architecture, roadmap, epic specs
 ├── app.py                      # Thin REPL: prompt → events → renderer
 ├── pytest.ini                  # Pytest configuration
