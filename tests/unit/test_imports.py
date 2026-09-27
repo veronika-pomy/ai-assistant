@@ -6,15 +6,10 @@ import pytest
 class TestCoreImports:
     """Test core module imports."""
 
-    def test_import_task_manager(self):
-        """Verify TaskManager can be imported."""
-        from core.task_manager import TaskManager
-        assert TaskManager is not None
-
-    def test_import_task_type(self):
-        """Verify TaskType enum can be imported."""
-        from core.task_manager import TaskType
-        assert TaskType is not None
+    def test_import_orchestrator_runner(self):
+        """Verify OrchestratorRunner can be imported."""
+        from core.orchestrator_runner import OrchestratorRunner
+        assert OrchestratorRunner is not None
 
     def test_import_session_manager(self):
         """Verify SessionManager can be imported."""
@@ -129,7 +124,7 @@ class TestModuleStructure:
     def test_all_core_modules_exist(self):
         """Verify all core modules can be imported."""
         import core
-        assert hasattr(core, 'task_manager')
+        assert hasattr(core, 'orchestrator_runner')
         assert hasattr(core, 'session')
         assert hasattr(core, 'events')
 

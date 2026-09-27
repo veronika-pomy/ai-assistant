@@ -46,7 +46,7 @@ One page. The goal: **very simple, but modularized and extendable via abstractio
 3. **Provider switching is env + factory.** `SEARCH_PROVIDER` (openai|tavily) via `get_search_tool()`; `MODEL_PROVIDER` (openai|openrouter) via startup client config. Hard rule: OpenRouter requires Tavily (hosted search runs on OpenAI servers only).
 4. **Feature flags for optional integrations.** MCP servers and Telegram are off by default (`MCP_FETCH_ENABLED`, `MCP_PLAYWRIGHT_ENABLED`, token presence). The app must run with none of them configured.
 5. **Sessions: one writer.** Only the orchestrator run gets `session=`. Parallel sub-runs (searchers) are session-less to avoid interleaved history in SQLite.
-6. **Minimal testing (discovery level).** Unit tests for pure logic (event yielding, factories, chat metadata CRUD) with `Runner` stubbed; one manual e2e script for live-API smoke runs. No mocking pyramid.
+6. **Minimal testing (discovery level).** Unit tests for pure logic (event yielding, factories, chat metadata CRUD) with `Runner` stubbed. Live-API testing is manual (`python app.py`). No mocking pyramid.
 
 ## Invariants to protect
 

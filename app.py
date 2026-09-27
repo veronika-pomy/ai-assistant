@@ -2,8 +2,8 @@ import asyncio
 from rich.console import Console
 
 from config.settings import get_settings
+from core.orchestrator_runner import OrchestratorRunner
 from core.session import SessionManager
-from core.task_manager import TaskManager
 from ui.banner import show_welcome
 from ui.prompts import prompt_user, is_exit_command
 from ui.renderer import Renderer
@@ -19,7 +19,7 @@ async def main():
     show_welcome(console)
 
     session = SessionManager(settings.session_name, ":memory:")
-    manager = TaskManager()
+    manager = OrchestratorRunner()
     renderer = Renderer(console)
 
     first = True
