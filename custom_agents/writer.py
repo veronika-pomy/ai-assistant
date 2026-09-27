@@ -1,6 +1,7 @@
-import os
 from pydantic import BaseModel, Field
 from agents import Agent
+
+from config.settings import get_model_name
 
 
 class Report(BaseModel):
@@ -64,6 +65,6 @@ def create_writer_agent(model: str = None) -> Agent:
     return Agent(
         name="Writer",
         instructions=WRITER_INSTRUCTIONS,
-        model=model or os.getenv("MODEL_NAME", "gpt-5.4-mini"),
+        model=model or get_model_name(),
         output_type=Report
     )

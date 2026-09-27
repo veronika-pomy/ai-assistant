@@ -1,5 +1,6 @@
-import os
 from agents import Agent
+
+from config.settings import get_model_name
 
 
 SOLVER_INSTRUCTIONS = """
@@ -34,5 +35,5 @@ def create_solver_agent(model: str = None) -> Agent:
     return Agent(
         name="Solver",
         instructions=SOLVER_INSTRUCTIONS,
-        model=model or os.getenv("MODEL_NAME", "gpt-5.4-mini")
+        model=model or get_model_name()
     )

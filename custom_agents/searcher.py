@@ -1,6 +1,7 @@
-import os
 from agents import Agent, ModelSettings
 from tools.web_search import get_web_search_tool
+
+from config.settings import get_model_name
 
 
 SEARCHER_INSTRUCTIONS = """
@@ -42,6 +43,6 @@ def create_searcher_agent(model: str = None) -> Agent:
         name="Searcher",
         instructions=SEARCHER_INSTRUCTIONS,
         tools=[get_web_search_tool()],
-        model=model or os.getenv("MODEL_NAME", "gpt-5.4-mini"),
+        model=model or get_model_name(),
         model_settings=settings
     )

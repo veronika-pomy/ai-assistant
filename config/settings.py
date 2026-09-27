@@ -18,6 +18,8 @@ class Settings:
         return cls(
             model_name=os.getenv("MODEL_NAME", "gpt-5.4-mini"),
             how_many_searches=int(os.getenv("HOW_MANY_SEARCHES", "5")),
+            # TODO(T5.1): session_type is currently unused; consumed when the
+            # persistent-session workflow lands.
             session_type=os.getenv("SESSION_TYPE", "memory"),
             session_name=os.getenv("SESSION_NAME", "nelle")
         )
@@ -26,3 +28,12 @@ class Settings:
 def get_settings() -> Settings:
     """Get application settings."""
     return Settings.load()
+
+
+def get_model_name() -> str:
+    """Return the configured model name.
+
+    Single source of truth for MODEL_NAME lookups so agent factories do not 
+    duplicate environment variable lookups.
+    """
+    return get_settings().model_name

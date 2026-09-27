@@ -128,7 +128,10 @@ class TaskManager:
         yield "[yellow]Creating plan...[/yellow]"
 
         # Use planner to break down the task
-        agent = create_planner_agent(self.settings.model_name)
+        agent = create_planner_agent(
+            self.settings.model_name,
+            how_many_searches=self.settings.how_many_searches,
+        )
         result = await Runner.run(agent, query, session=session)
 
         plan = result.final_output
@@ -204,7 +207,10 @@ class TaskManager:
         Returns:
             SearchPlan with list of searches
         """
-        agent = create_planner_agent(self.settings.model_name)
+        agent = create_planner_agent(
+            self.settings.model_name,
+            how_many_searches=self.settings.how_many_searches,
+        )
         result = await Runner.run(agent, query, session=session)
         return result.final_output
 
