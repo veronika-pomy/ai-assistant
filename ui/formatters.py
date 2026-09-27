@@ -1,6 +1,7 @@
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
+from rich.text import Text
 
 
 def format_markdown_report(markdown: str) -> Markdown:
@@ -22,4 +23,4 @@ def show_error(console: Console, message: str):
         console: Rich console instance
         message: Error message text
     """
-    console.print(Panel(message, style="red", title="Error"))
+    console.print(Panel(Text(message), style="red", title="Error"))

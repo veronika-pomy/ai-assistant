@@ -7,6 +7,7 @@ lifecycle used for :class:`~core.events.TokenDelta` streams.
 
 from rich.console import Console
 from rich.live import Live
+from rich.markup import escape
 from rich.text import Text
 
 from core.events import (
@@ -70,7 +71,7 @@ class Renderer:
 
     def _render_status(self, event: StatusEvent) -> None:
         style = _STATUS_STYLE.get(event.kind, "yellow")
-        self.console.print(f"[{style}]{event.text}[/{style}]")
+        self.console.print(f"[{style}]{escape(event.text)}[/{style}]")
 
     def _render_token_delta(self, event: TokenDelta) -> None:
         if self._live is None:
@@ -96,11 +97,11 @@ class Renderer:
     def _render_todo(self, event: TodoUpdate) -> None:
         for item in event.items:
             mark = "[green]✓[/green]" if item.done else "[dim]•[/dim]"
-            self.console.print(f"{mark} {item.text}")
+            self.console.print(f"{mark} {escape(item.text)}")
 
     def _render_confirm(self, event: ConfirmRequest) -> None:
-        hint = f" [dim]({event.cost_hint})[/dim]" if event.cost_hint else ""
-        self.console.print(f"[bold yellow]? {event.prompt}[/bold yellow]{hint}")
+        hint = f" [dim]({escape(event.cost_hint)})[/dim]" if event.cost_hint else ""
+        self.console.print(f"[bold yellow]? {escape(event.prompt)}[/bold yellow]{hint}")
 
     def _render_question(self, event: QuestionEvent) -> None:
-        self.console.print(f"[bold cyan]? {event.text}[/bold cyan]")
+        self.console.print(f"[bold cyan]? {escape(event.text)}[/bold cyan]")
