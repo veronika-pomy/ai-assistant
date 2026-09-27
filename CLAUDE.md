@@ -38,7 +38,8 @@ pip install -r requirements.txt
 **Run tests:**
 ```bash
 source .venv/bin/activate
-python test_phase6.py
+pytest tests/unit -v            # unit tests (no live API)
+pytest tests/ -v                # unit + e2e
 ```
 
 **Run the app:**
@@ -79,24 +80,30 @@ which python
 ai-assistant/
 ├── .venv/                      # Virtual environment (ACTIVATE THIS)
 ├── custom_agents/              # Custom agent definitions
-│   ├── planner.py
-│   ├── searcher.py
+│   ├── planner.py              # SearchPlan (dynamic N-search schema)
+│   ├── searcher.py             # SearchSummary output
 │   ├── solver.py
-│   └── writer.py
-├── core/                       # Core orchestration
+│   └── writer.py               # Report output
+├── core/                       # Core orchestration (no Rich markup)
 │   ├── task_manager.py
 │   ├── session.py
-│   └── streaming.py
+│   └── events.py               # Typed pydantic event vocabulary
 ├── tools/                      # Tool abstractions
 │   ├── base.py
 │   └── web_search.py
-├── ui/                         # Terminal UI
+├── ui/                         # Terminal UI (owns all Rich rendering)
 │   ├── banner.py
 │   ├── prompts.py
+│   ├── renderer.py             # Event → console + Live streaming
 │   └── formatters.py
 ├── config/                     # Configuration
-│   └── settings.py
-├── app.py                      # Main entry point
+│   └── settings.py             # Settings + get_model_name() helper
+├── tests/
+│   ├── unit/                   # Unit tests (Runner stubbed)
+│   └── e2e/                    # Live-API smoke scripts
+├── docs/ai/                    # Backlog, architecture, roadmap, epic specs
+├── app.py                      # Thin REPL: prompt → events → renderer
+├── pytest.ini                  # Pytest configuration
 ├── requirements.txt            # Dependencies
 └── .env                        # API keys (not in git)
 ```
