@@ -82,7 +82,7 @@ class Renderer:
             )
             self._live.start()
         self._live_buffer += event.text
-        self._live.update(Text.from_markup(self._live_buffer))
+        self._live.update(Text(self._live_buffer))
 
     def _stop_live(self) -> None:
         if self._live is not None:
